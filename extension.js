@@ -46,6 +46,9 @@ function activate( context )
     var status = vscode.window.createStatusBarItem( vscode.StatusBarAlignment.Left, 0 );
     var outputChannel = vscode.workspace.getConfiguration( 'todo-tree' ).debug ? vscode.window.createOutputChannel( "todo-tree" ) : undefined;
 
+    var todoTreeViewExplorer = vscode.window.createTreeView( "todo-tree-explorer", { treeDataProvider: provider } );
+    var todoTreeView = vscode.window.createTreeView( "todo-tree", { treeDataProvider: provider } );
+
     function isHexColour( colour )
     {
         var hex = colour.split( / / )[ 0 ].replace( /[^\da-fA-F]/g, '' );
@@ -555,6 +558,16 @@ function activate( context )
                     {
                         rebuild();
                     }
+                }
+            }
+
+            if( e && e.document )
+            {
+                var element = provider.getElement( getRootFolder(), e.document.fileName );
+
+                if( element )
+                {
+                    todoTreeViewExplorer.reveal( element );
                 }
             }
 
