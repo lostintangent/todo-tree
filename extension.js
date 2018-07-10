@@ -567,7 +567,16 @@ function activate( context )
 
                 if( element )
                 {
-                    todoTreeViewExplorer.reveal( element );
+                    console.log( "todoTreeViewExplorer.active:" + todoTreeViewExplorer.active );
+                    console.log( "todoTreeView.active:" + todoTreeView.active );
+                    if( todoTreeViewExplorer.active === true )
+                    {
+                        todoTreeViewExplorer.reveal( element );
+                    }
+                    if( todoTreeView.active === true )
+                    {
+                        todoTreeView.reveal( element );
+                    }
                 }
             }
 
