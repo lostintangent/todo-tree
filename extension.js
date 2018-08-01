@@ -6,6 +6,7 @@ var TreeView = require( "./dataProvider" );
 var fs = require( 'fs' );
 var path = require( 'path' );
 var minimatch = require( 'minimatch' );
+var vsls = require("vsls/vscode");
 
 var defaultRootFolder = "/";
 var lastRootFolder = defaultRootFolder;
@@ -39,12 +40,60 @@ var defaultDarkColours = {
     "grey": "#aaaaaa"
 };
 
-function activate( context )
+async function activate( context )
 {
     var provider = new TreeView.TodoDataProvider( context, defaultRootFolder );
     var status = vscode.window.createStatusBarItem( vscode.StatusBarAlignment.Left, 0 );
     var outputChannel = vscode.workspace.getConfiguration( 'todo-tree' ).debug ? vscode.window.createOutputChannel( "todo-tree" ) : undefined;
 
+    const vslsApi = await vsls.getApiAsync();
+    const todosUpdatedEventHandler = new vscode.EventEmitter();
+    const rebuildRequestedEventHandler = new vscode.EventEmitter();
+    let isVslsGuest = false;
+    vslsApi.onDidChangeSession(async (e) => {
+        switch (e.session.role) {
+            case vsls.Role.Host:
+                const processTodo = (todo) => ({
+                    ...todo,
+                    file: vslsApi.convertLocalUriToShared(todo.fileUri).toString()
+                });
+
+                const hostService = await vslsApi.shareService("todos");                
+                hostService.onRequest("getTodos", () => dataSet.map(processTodo));
+                
+                todosUpdatedEventHandler.event(() => {
+                    hostService.notify("todosUpdated", { todos: dataSet.map(processTodo) });
+                });
+
+                break;
+
+            case vsls.Role.Guest:
+                isVslsGuest = true;
+                const vslsGuestService = await vslsApi.getSharedService("todos"); 
+
+                const updateTodos = (todos) => {
+                    dataSet = todos.map(todo => {
+                        todo.fileUri = vscode.Uri.parse(todo.file);
+                        return todo;
+                    });
+                    addToTree(getRootFolder());
+                };
+                rebuildRequestedEventHandler.event(async () => {
+                    const todos = await vslsGuestService.request("getTodos", []);
+                    updateTodos(todos);
+                });
+
+                vslsGuestService.onNotify("todosUpdated", ({ todos }) => {
+                    provider.clear();
+                    updateTodos(todos);
+                });
+
+                rebuild();
+                break;
+        }
+    });
+    
+    // TODO ll
     function debug( text )
     {
         if( outputChannel )
@@ -184,7 +233,7 @@ function activate( context )
                 var workspace = vscode.workspace.getWorkspaceFolder( editor.document.uri );
                 if( workspace )
                 {
-                    definition = workspace.uri.fsPath;
+                    definition = workspace.uri.toString();
                 }
             }
             return definition;
@@ -217,7 +266,7 @@ function activate( context )
             rootFolder = defaultRootFolder;
         }
 
-        return path.resolve( rootFolder );
+        return rootFolder;
     }
 
     function addToTree( rootFolder )
@@ -247,13 +296,14 @@ function activate( context )
 
     function search( rootFolder, options, done )
     {
-        ripgrep.search( "/", options ).then( matches =>
+        ripgrep.search("/", options).then( matches =>
         {
             if( matches.length > 0 )
             {
                 matches.forEach( match =>
                 {
                     debug( " Match: " + JSON.stringify( match ) );
+                    match.fileUri = vscode.Uri.file(match.file);
                     dataSet.push( match );
                 } );
             }
@@ -351,7 +401,7 @@ function activate( context )
         } );
     }
 
-    function iterateSearchList()
+    function iterateSearchList(refreshFile = false)
     {
         if( searchList.length > 0 )
         {
@@ -361,20 +411,25 @@ function activate( context )
 
             if( entry.file )
             {
-                search( getRootFolder(), getOptions( entry.file ), iterateSearchList );
+                search( getRootFolder(), getOptions( entry.file ), iterateSearchList.bind(null, refreshFile) );
             }
             else if( entry.folder )
             {
-                search( entry.folder, getOptions( entry.folder ), iterateSearchList );
+                search( entry.folder, getOptions( entry.folder ), iterateSearchList.bind(null, refreshFile) );
             }
         }
         else
         {
+            if (refreshFile) {
+                todosUpdatedEventHandler.fire();
+            }
+
+            // TODO sdfff
             addToTree( getRootFolder() );
         }
     }
 
-    function rebuild()
+    async function rebuild()
     {
         dataSet = [];
         provider.clear();
@@ -387,10 +442,14 @@ function activate( context )
         status.command = "todo-tree.stopScan";
         status.tooltip = "Click to interrupt scan";
 
-        searchOutOfWorkspaceDocuments( searchList );
-        searchWorkspace( searchList );
+        if (isVslsGuest) {
+            rebuildRequestedEventHandler.fire();
+        } else {
+            searchOutOfWorkspaceDocuments( searchList );
+            searchWorkspace( searchList );
 
-        iterateSearchList( searchList );
+            iterateSearchList();
+        } 
     }
 
     function setButtons()
@@ -442,7 +501,7 @@ function activate( context )
         if( add === true )
         {
             searchList = [ { file: filename } ];
-            iterateSearchList();
+            iterateSearchList(true);
         }
     }
 

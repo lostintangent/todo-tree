@@ -195,7 +195,7 @@ class TodoDataProvider
 
         if( element.file )
         {
-            treeItem.resourceUri = new vscode.Uri.file( element.file );
+            treeItem.resourceUri = element.fileUri;
             treeItem.tooltip = element.file;
 
             if( element.type === PATH )
@@ -224,7 +224,7 @@ class TodoDataProvider
                     command: "todo-tree.revealTodo",
                     title: "",
                     arguments: [
-                        element.file,
+                        element.fileUri,
                         element.line
                     ]
                 };
@@ -267,8 +267,8 @@ class TodoDataProvider
             return child;
         }
 
-        var fullPath = path.resolve( rootFolder, match.file );
-        var relativePath = path.relative( rootFolder, fullPath );
+        var fullPath = match.file;
+        var relativePath = vscode.workspace.asRelativePath(fullPath);
         var parts = relativePath.split( path.sep );
 
         var pathElement;
@@ -321,6 +321,7 @@ class TodoDataProvider
             name: name,
             line: match.line - 1,
             file: fullPath,
+            fileUri: match.fileUri,
             id: ( buildCounter * 1000000 ) + hash( JSON.stringify( match ) ),
             visible: true
         };
@@ -360,6 +361,7 @@ class TodoDataProvider
                 pathElement = {
                     type: PATH,
                     file: fullPath,
+                    fileUri: match.fileUri,
                     name: path.basename( fullPath ),
                     pathLabel: pathLabel,
                     path: relativePath,
@@ -401,6 +403,7 @@ class TodoDataProvider
                     pathElement = {
                         type: PATH,
                         file: subPath,
+                        fileUri: match.fileUri,
                         name: p,
                         parent: pathElement,
                         elements: [],
