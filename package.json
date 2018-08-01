@@ -8,7 +8,7 @@
         "tasklist",
         "multi-root ready"
     ],
-    "version": "0.0.72",
+    "version": "0.0.76",
     "icon": "resources/todo-tree.png",
     "publisher": "Gruntfuggly",
     "engines": {
@@ -177,6 +177,16 @@
                     "dark": "resources/icons/dark/notag.svg",
                     "light": "resources/icons/light/notag.svg"
                 }
+            },
+            {
+                "command": "todo-tree.addTag",
+                "title": "Add Tag",
+                "category": "todo-tree"
+            },
+            {
+                "command": "todo-tree.removeTag",
+                "title": "Remove Tag",
+                "category": "todo-tree"
             }
         ],
         "configuration": {

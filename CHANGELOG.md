@@ -1,3 +1,17 @@
+# v0.0.76 - 2018-07-31
+- Add information about header buttons to README.md
+
+# v0.0.75 - 2018-07-31
+- Add commands for adding and removing tags
+- Add note to README.md about reloading the window after installation
+- Add note to README.md about excluding files and folders
+
+# v0.0.74 - 2018-07-31
+- Fix showing highlights properly
+
+# v0.0.73 - 2018-07-30
+- Show highlights in all editors (not just the active editor) (fixes [#61](https://github.com/Gruntfuggly/todo-tree/issues/61))
+
 # v0.0.72 - 2018-07-16
 - Treat process as a stream to avoid buffer size problems
 
