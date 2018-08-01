@@ -74,6 +74,7 @@ async function activate( context )
                 const updateTodos = (todos) => {
                     dataSet = todos.map(todo => {
                         todo.fileUri = vscode.Uri.parse(todo.file);
+                        todo.file = todo.file.replace("vsls:/", "");
                         return todo;
                     });
                     addToTree(getRootFolder());
@@ -93,7 +94,7 @@ async function activate( context )
         }
     });
     
-    // TODO ll
+
     function debug( text )
     {
         if( outputChannel )
@@ -424,7 +425,6 @@ async function activate( context )
                 todosUpdatedEventHandler.fire();
             }
 
-            // TODO sdfff
             addToTree( getRootFolder() );
         }
     }
